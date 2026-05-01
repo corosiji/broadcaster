@@ -1,0 +1,16 @@
+[Unit]
+Description=Office Radio Broadcaster App
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/broadcaster
+EnvironmentFile=/opt/broadcaster/.env
+ExecStart=/usr/bin/node /opt/broadcaster/src/server.js
+Restart=always
+RestartSec=3
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target
