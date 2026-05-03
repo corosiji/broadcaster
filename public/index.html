@@ -3,18 +3,76 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Office Radio - Listener</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <title>Radio Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 20px auto; padding: 16px; }
+    .row { display:flex; gap:10px; margin: 12px 0; }
+    button { padding: 10px 16px; font-size: 16px; cursor: pointer; }
+    #status { font-weight: bold; }
+    .on { color: green; }
+    .off { color: red; }
+    .card { border:1px solid #ddd; border-radius:10px; padding:16px; }
+  </style>
 </head>
 <body>
-  <main class="card">
-    <h1>🎙️ Office Radio</h1>
-    <p id="status">Memuat status...</p>
-    <p><strong>Program:</strong> <span id="programName">-</span></p>
-    <p><strong>Now Playing:</strong> <span id="nowPlaying">-</span></p>
-    <audio id="player" controls preload="none" style="width:100%"></audio>
-    <p class="hint">Akses admin: <a href="/admin">/admin</a></p>
-  </main>
-  <script src="/app.js"></script>
+  <div class="card">
+    <h1>Dashboard Radio Online</h1>
+    <p>Status: <span id="status" class="off">OFF AIR</span></p>
+    <p>Audio Device: <span id="device">-</span></p>
+    <p>Stream URL: <a id="streamLink" href="#" target="_blank">-</a></p>
+
+    <div class="row">
+      <button id="btnStart">START SIARAN</button>
+      <button id="btnStop">STOP SIARAN</button>
+    </div>
+
+    <p id="message"></p>
+
+    <h3>Monitor Listener</h3>
+    <audio id="player" controls style="width:100%"></audio>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const deviceEl = document.getElementById('device');
+    const streamLink = document.getElementById('streamLink');
+    const player = document.getElementById('player');
+    const messageEl = document.getElementById('message');
+
+    async function request(url, method='GET') {
+      const res = await fetch(url, { method, headers: { 'Content-Type':'application/json' } });
+      return res.json();
+    }
+
+    function applyStatus(data) {
+      statusEl.textContent = data.status;
+      statusEl.className = data.isOnAir ? 'on' : 'off';
+      deviceEl.textContent = data.audioDevice;
+      streamLink.textContent = data.streamUrl;
+      streamLink.href = data.streamUrl;
+      player.src = data.streamUrl;
+      if (data.lastError) messageEl.textContent = 'Info FFmpeg: ' + data.lastError;
+    }
+
+    async function refresh() {
+      const data = await request('/api/status');
+      applyStatus(data);
+    }
+
+    document.getElementById('btnStart').onclick = async () => {
+      const data = await request('/api/start-broadcast', 'POST');
+      messageEl.textContent = data.message;
+      applyStatus(data);
+    };
+
+    document.getElementById('btnStop').onclick = async () => {
+      const data = await request('/api/stop-broadcast', 'POST');
+      messageEl.textContent = data.message;
+      applyStatus(data);
+    };
+
+    refresh();
+    setInterval(refresh, 3000);
+  </script>
 </body>
 </html>

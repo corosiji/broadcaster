@@ -1,59 +1,68 @@
-# Office Radio (Intranet)
+# Radio Online Node.js (Windows Ready)
 
-Aplikasi Node.js sederhana untuk radio internal kantor dengan dua dashboard:
-- `/` listener
-- `/admin` broadcaster/admin
+Project ini menyediakan dashboard web untuk operator radio internal:
+- Tombol **START SIARAN** untuk menjalankan FFmpeg.
+- Tombol **STOP SIARAN** untuk menghentikan FFmpeg.
+- Status **ON AIR / OFF AIR** realtime.
+- Audio player untuk monitor stream Icecast.
 
-## 1) Jalankan lokal
+## 1) Install Node.js
+Install Node.js LTS dari https://nodejs.org
 
-```bash
-cp .env.example .env
-node src/server.js --gen-pass-hash "StrongPassword123!"
-# salin output ke ADMIN_PASS_HASH di .env
-set -a; source .env; set +a
-node src/server.js
-```
+## 2) Install FFmpeg
+Install FFmpeg for Windows dan pastikan `ffmpeg` bisa dipanggil dari Command Prompt.
 
-Buka:
-- `http://localhost:3000/`
-- `http://localhost:3000/admin`
+## 3) Install Icecast
+Install Icecast dan pastikan server jalan di `localhost:8000` (atau sesuaikan `.env`).
 
-## 2) Integrasi Icecast
-
-Pastikan Icecast aktif di server yang sama/terjangkau jaringan:
-- stream mount: `STREAM_URL` (contoh `http://127.0.0.1:8000/live`)
-- status endpoint: `ICECAST_STATUS_URL` (contoh `http://127.0.0.1:8000/status-json.xsl`)
-
-Cek health:
+## 4) Cek nama microphone Windows
+Jalankan perintah:
 
 ```bash
-curl -s http://127.0.0.1:3000/api/health
+ffmpeg -list_devices true -f dshow -i dummy
 ```
 
-## 3) Hardening security (sudah diterapkan)
+Ambil nama mic dari output lalu isi ke `AUDIO_DEVICE` di `.env`.
 
-- Password hash (scrypt) via `ADMIN_PASS_HASH`
-- Session TTL
-- CSRF token untuk endpoint admin write
-- Rate limit login per IP
-- Security headers dasar
-
-## 4) Packaging sebagai service Linux (systemd)
+## 5) Isi file .env
+Copy contoh env:
 
 ```bash
-./deploy/install-service.sh
+copy .env.example .env
 ```
 
-Setelah itu:
+Isi value sesuai mesin target:
+
+```env
+ICECAST_HOST=localhost
+ICECAST_PORT=8000
+ICECAST_MOUNT=/radio
+ICECAST_USER=source
+ICECAST_PASSWORD=hackme
+AUDIO_DEVICE=Microphone (Realtek(R) Audio)
+PORT=3000
+```
+
+## 6) Jalankan aplikasi
 
 ```bash
-sudo systemctl status broadcaster
-journalctl -u broadcaster -f
+npm install
+npm start
 ```
 
+## 7) Akses dashboard
+Buka browser:
 
-## 5) Jalankan test
-
-```bash
-npm test
+```text
+http://localhost:3000
 ```
+
+## Endpoint API
+- `GET /api/status`
+- `POST /api/start-broadcast`
+- `POST /api/stop-broadcast`
+
+## Catatan perilaku
+- Jika siaran sudah berjalan, tombol START tidak membuat proses FFmpeg baru.
+- Jika siaran belum berjalan, tombol STOP tetap aman dan tidak error.
+- Jika FFmpeg berhenti sendiri/error, status otomatis kembali OFF AIR.
